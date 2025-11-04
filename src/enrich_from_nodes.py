@@ -21,19 +21,18 @@ TARGET_FIELDS = (
     "location",
     "linkedin_url",
     "latest funding type",
+    "keywords matched",
 )
 
 def is_empty(v: Any) -> bool:
     return v is None or (isinstance(v, str) and v.strip() == "") or (isinstance(v, list) and len(v) == 0)
 
 def richness_from_node_attr(attr: Dict[str, Any]) -> int:
-    """Сколько целевых полей потенциально можно взять из узла."""
     score = 0
-    if attr.get("Total Funding") not in (None, ""): score += 1
-    if attr.get("Company Size") not in (None, ""): score += 1
-    if attr.get("HQ City") or (isinstance(attr.get("Geo Mentions"), list) and attr.get("Geo Mentions")): score += 1
-    if attr.get("LinkedIn"): score += 1
-    if attr.get("Last Funding Type"): score += 1
+    for f in ["Total Funding", "Company Size", "HQ City", "LinkedIn",
+              "Year Last Funded", "Last Funding Type", "Keywords"]:
+        if attr.get(f) not in (None, "", []):
+            score += 1
     return score
 
 def extract_values_from_node(attr: Dict[str, Any]) -> Dict[str, Any]:
@@ -61,12 +60,21 @@ def extract_values_from_node(attr: Dict[str, Any]) -> Dict[str, Any]:
         if latest_funding_type == "":
             latest_funding_type = None
 
+    keywords = attr.get("Keywords")
+    if isinstance(keywords, list):
+        keywords = ", ".join(sorted(set(str(k).strip() for k in keywords if k)))
+    elif isinstance(keywords, str):
+        keywords = keywords.strip()
+    else:
+        keywords = None
+
     return {
         "total_funding": total_funding,
         "employees_count": employees_count,
         "location": location,
         "linkedin_url": linkedin_url,
         "latest funding type": latest_funding_type,
+        "keywords matched": keywords,
     }
 
 def build_nodes_indexes(nodes: Dict[str, Any]) -> Tuple[Dict[str, Dict], Dict[str, Dict]]:
