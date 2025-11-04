@@ -20,18 +20,20 @@ TARGET_FIELDS = (
     "employees_count",
     "location",
     "linkedin_url",
+    "latest funding type",
 )
 
 def is_empty(v: Any) -> bool:
     return v is None or (isinstance(v, str) and v.strip() == "") or (isinstance(v, list) and len(v) == 0)
 
 def richness_from_node_attr(attr: Dict[str, Any]) -> int:
-    """Насколько 'полезен' узел для задачи"""
+    """Сколько целевых полей потенциально можно взять из узла."""
     score = 0
     if attr.get("Total Funding") not in (None, ""): score += 1
     if attr.get("Company Size") not in (None, ""): score += 1
-    if attr.get("HQ City") or (isinstance(attr.get("Geo Mentions"), list) and attr.get("Geo Mentions")):
-        score += 1
+    if attr.get("HQ City") or (isinstance(attr.get("Geo Mentions"), list) and attr.get("Geo Mentions")): score += 1
+    if attr.get("LinkedIn"): score += 1
+    if attr.get("Last Funding Type"): score += 1
     return score
 
 def extract_values_from_node(attr: Dict[str, Any]) -> Dict[str, Any]:
@@ -53,12 +55,18 @@ def extract_values_from_node(attr: Dict[str, Any]) -> Dict[str, Any]:
     linkedin_url = attr.get("LinkedIn")
     linkedin_url = str(linkedin_url).strip() if linkedin_url not in (None, "") else None
 
+    latest_funding_type = attr.get("Last Funding Type")
+    if isinstance(latest_funding_type, str):
+        latest_funding_type = latest_funding_type.strip().strip('"').strip("'")
+        if latest_funding_type == "":
+            latest_funding_type = None
 
     return {
         "total_funding": total_funding,
         "employees_count": employees_count,
         "location": location,
         "linkedin_url": linkedin_url,
+        "latest funding type": latest_funding_type,
     }
 
 def build_nodes_indexes(nodes: Dict[str, Any]) -> Tuple[Dict[str, Dict], Dict[str, Dict]]:
